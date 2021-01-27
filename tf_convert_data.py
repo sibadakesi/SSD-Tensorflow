@@ -26,7 +26,7 @@ python tf_convert_data.py \
 """
 import tensorflow as tf
 
-from datasets import pascalvoc_to_tfrecords
+from datasets import pascalvoc_to_tfrecords,labelme_to_tfrecords
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -53,10 +53,10 @@ def main(_):
     if FLAGS.dataset_name == 'pascalvoc':
         pascalvoc_to_tfrecords.run(FLAGS.dataset_dir, FLAGS.output_dir, FLAGS.output_name)
     if FLAGS.dataset_name == 'labelme':
-        pass
+        labelme_to_tfrecords.run(FLAGS.dataset_dir, FLAGS.output_dir, FLAGS.output_name)
     else:
         raise ValueError('Dataset [%s] was not recognized.' % FLAGS.dataset_name)
 
+
 if __name__ == '__main__':
     tf.app.run()
-
