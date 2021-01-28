@@ -60,7 +60,6 @@ from nets import ssd_common
 
 slim = tf.contrib.slim
 
-
 # =========================================================================== #
 # SSD class definition.
 # =========================================================================== #
@@ -112,16 +111,16 @@ class SSDNet(object):
         #               (213., 264.),
         #               (264., 315.)],
         anchor_ratios=[[2, .5],
-                       [2, .5, 3, 1./3],
-                       [2, .5, 3, 1./3],
-                       [2, .5, 3, 1./3],
+                       [2, .5, 3, 1. / 3],
+                       [2, .5, 3, 1. / 3],
+                       [2, .5, 3, 1. / 3],
                        [2, .5],
                        [2, .5]],
         anchor_steps=[8, 16, 32, 64, 100, 300],
         anchor_offset=0.5,
         normalizations=[20, -1, -1, -1, -1, -1],
         prior_scaling=[0.1, 0.1, 0.2, 0.2]
-        )
+    )
 
     def __init__(self, params=None):
         """Init the SSD net with some parameters. Use the default ones
@@ -248,6 +247,46 @@ class SSDNet(object):
                           scope=scope)
 
 
+class SSDNetTiny(SSDNet):
+    default_params = SSDParams(
+        img_shape=(300, 300),
+        num_classes=2,
+        no_annotation_label=2,
+        feat_layers=['block4', 'block7', 'block8'],
+        feat_shapes=[(38, 38), (19, 19), (10, 10), ],
+        anchor_size_bounds=[0.15, 0.90],
+        # anchor_size_bounds=[0.20, 0.90],
+        anchor_sizes=[(21., 45.),
+                      (45., 99.),
+                      (99., 153.), ],
+        # anchor_sizes=[(30., 60.),
+        #               (60., 111.),
+        #               (111., 162.),
+        #               (162., 213.),
+        #               (213., 264.),
+        #               (264., 315.)],
+        anchor_ratios=[[2, .5],
+                       [2, .5, 3, 1. / 3],
+                       [2, .5, 3, 1. / 3],
+                       [2, .5, 3, 1. / 3],
+                       [2, .5],
+                       [2, .5]],
+        anchor_steps=[8, 16, 32, 64, 100, 300],
+        anchor_offset=0.5,
+        normalizations=[20, -1, -1, -1, -1, -1],
+        prior_scaling=[0.1, 0.1, 0.2, 0.2]
+    )
+
+    def __init__(self, params=None):
+        """Init the SSD net with some parameters. Use the default ones
+        if none provided.
+        """
+        if isinstance(params, SSDParams):
+            self.params = params
+        else:
+            self.params = self.default_params
+
+
 # =========================================================================== #
 # SSD tools...
 # =========================================================================== #
@@ -342,8 +381,8 @@ def ssd_anchor_one_layer(img_shape,
     # Compute relative height and width.
     # Tries to follow the original implementation of SSD for the order.
     num_anchors = len(sizes) + len(ratios)
-    h = np.zeros((num_anchors, ), dtype=dtype)
-    w = np.zeros((num_anchors, ), dtype=dtype)
+    h = np.zeros((num_anchors,), dtype=dtype)
+    w = np.zeros((num_anchors,), dtype=dtype)
     # Add first anchor boxes with ratio=1.
     h[0] = sizes[0] / img_shape[0]
     w[0] = sizes[0] / img_shape[1]
@@ -353,8 +392,8 @@ def ssd_anchor_one_layer(img_shape,
         w[1] = math.sqrt(sizes[0] * sizes[1]) / img_shape[1]
         di += 1
     for i, r in enumerate(ratios):
-        h[i+di] = sizes[0] / img_shape[0] / math.sqrt(r)
-        w[i+di] = sizes[0] / img_shape[1] * math.sqrt(r)
+        h[i + di] = sizes[0] / img_shape[0] / math.sqrt(r)
+        w[i + di] = sizes[0] / img_shape[1] * math.sqrt(r)
     return y, x, h, w
 
 
@@ -418,14 +457,14 @@ def ssd_multibox_layer(inputs,
                            scope='conv_loc')
     loc_pred = custom_layers.channel_to_last(loc_pred)
     loc_pred = tf.reshape(loc_pred,
-                          tensor_shape(loc_pred, 4)[:-1]+[num_anchors, 4])
+                          tensor_shape(loc_pred, 4)[:-1] + [num_anchors, 4])
     # Class prediction.
     num_cls_pred = num_anchors * num_classes
     cls_pred = slim.conv2d(net, num_cls_pred, [3, 3], activation_fn=None,
                            scope='conv_cls')
     cls_pred = custom_layers.channel_to_last(cls_pred)
     cls_pred = tf.reshape(cls_pred,
-                          tensor_shape(cls_pred, 4)[:-1]+[num_anchors, num_classes])
+                          tensor_shape(cls_pred, 4)[:-1] + [num_anchors, num_classes])
     return cls_pred, loc_pred
 
 
@@ -486,22 +525,22 @@ def ssd_net(inputs,
             net = custom_layers.pad2d(net, pad=(1, 1))
             net = slim.conv2d(net, 512, [3, 3], stride=2, scope='conv3x3', padding='VALID')
         end_points[end_point] = net
-        end_point = 'block9'
-        with tf.variable_scope(end_point):
-            net = slim.conv2d(net, 128, [1, 1], scope='conv1x1')
-            net = custom_layers.pad2d(net, pad=(1, 1))
-            net = slim.conv2d(net, 256, [3, 3], stride=2, scope='conv3x3', padding='VALID')
-        end_points[end_point] = net
-        end_point = 'block10'
-        with tf.variable_scope(end_point):
-            net = slim.conv2d(net, 128, [1, 1], scope='conv1x1')
-            net = slim.conv2d(net, 256, [3, 3], scope='conv3x3', padding='VALID')
-        end_points[end_point] = net
-        end_point = 'block11'
-        with tf.variable_scope(end_point):
-            net = slim.conv2d(net, 128, [1, 1], scope='conv1x1')
-            net = slim.conv2d(net, 256, [3, 3], scope='conv3x3', padding='VALID')
-        end_points[end_point] = net
+        # end_point = 'block9'
+        # with tf.variable_scope(end_point):
+        #     net = slim.conv2d(net, 128, [1, 1], scope='conv1x1')
+        #     net = custom_layers.pad2d(net, pad=(1, 1))
+        #     net = slim.conv2d(net, 256, [3, 3], stride=2, scope='conv3x3', padding='VALID')
+        # end_points[end_point] = net
+        # end_point = 'block10'
+        # with tf.variable_scope(end_point):
+        #     net = slim.conv2d(net, 128, [1, 1], scope='conv1x1')
+        #     net = slim.conv2d(net, 256, [3, 3], scope='conv3x3', padding='VALID')
+        # end_points[end_point] = net
+        # end_point = 'block11'
+        # with tf.variable_scope(end_point):
+        #     net = slim.conv2d(net, 128, [1, 1], scope='conv1x1')
+        #     net = slim.conv2d(net, 256, [3, 3], scope='conv3x3', padding='VALID')
+        # end_points[end_point] = net
 
         # Prediction and localisations layers.
         predictions = []
@@ -519,6 +558,8 @@ def ssd_net(inputs,
             localisations.append(l)
 
         return predictions, localisations, logits, end_points
+
+
 ssd_net.default_image_size = 300
 
 
@@ -614,37 +655,39 @@ def ssd_losses(logits, localisations,
         n_positives = tf.reduce_sum(fpmask)
 
         # Hard negative mining...
-        no_classes = tf.cast(pmask, tf.int32)
+        no_classes = tf.cast(pmask, tf.int32)  # positive = 1, 아닌것은 0이 되는데  ---> 원하는 것은 backgroud의 label은 0
         predictions = slim.softmax(logits)
-        nmask = tf.logical_and(tf.logical_not(pmask),
-                               gscores > -0.5)
+        nmask = tf.logical_and(tf.logical_not(pmask), gscores > -0.5)  # positive 아닌것
         fnmask = tf.cast(nmask, dtype)
-        nvalues = tf.where(nmask,
-                           predictions[:, 0],
-                           1. - fnmask)
+
+        nvalues = tf.where(nmask, predictions[:, 0], 1. - fnmask)
+
         nvalues_flat = tf.reshape(nvalues, [-1])
         # Number of negative entries to select.
         max_neg_entries = tf.cast(tf.reduce_sum(fnmask), tf.int32)
-        n_neg = tf.cast(negative_ratio * n_positives, tf.int32) + batch_size
+        n_neg = tf.cast(negative_ratio * n_positives, tf.int32) + 1
         n_neg = tf.minimum(n_neg, max_neg_entries)
 
         val, idxes = tf.nn.top_k(-nvalues_flat, k=n_neg)
         max_hard_pred = -val[-1]
         # Final negative mask.
-        nmask = tf.logical_and(nmask, nvalues < max_hard_pred)
+        nmask = tf.logical_and(nmask, nvalues <= max_hard_pred)
         fnmask = tf.cast(nmask, dtype)
 
         # Add cross-entropy loss.
+
+        batch_size = tf.cast(batch_size, dtype)
+        n_negative = tf.cast(nmask, dtype)
+        n_positives = tf.maximum(n_positives, 1)
+
         with tf.name_scope('cross_entropy_pos'):
-            loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
-                                                                  labels=gclasses)
-            loss = tf.div(tf.reduce_sum(loss * fpmask), batch_size, name='value')
+            loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=gclasses)
+            loss = tf.div(tf.reduce_sum(loss * fpmask), n_positives, name='value')
             tf.losses.add_loss(loss)
 
         with tf.name_scope('cross_entropy_neg'):
-            loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
-                                                                  labels=no_classes)
-            loss = tf.div(tf.reduce_sum(loss * fnmask), batch_size, name='value')
+            loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=no_classes)
+            loss = tf.div(tf.reduce_sum(loss * fnmask), n_positives, name='value')
             tf.losses.add_loss(loss)
 
         # Add localization loss: smooth L1, L2, ...
@@ -652,7 +695,7 @@ def ssd_losses(logits, localisations,
             # Weights Tensor: positive mask + random negative.
             weights = tf.expand_dims(alpha * fpmask, axis=-1)
             loss = custom_layers.abs_smooth(localisations - glocalisations)
-            loss = tf.div(tf.reduce_sum(loss * weights), batch_size, name='value')
+            loss = tf.div(tf.reduce_sum(loss * weights), n_positives, name='value')
             tf.losses.add_loss(loss)
 
 

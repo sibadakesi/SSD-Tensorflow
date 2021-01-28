@@ -50,6 +50,7 @@ arg_scopes_map = {'vgg_a': vgg.vgg_arg_scope,
 
 networks_obj = {'ssd_300_vgg': ssd_vgg_300.SSDNet,
                 'ssd_512_vgg': ssd_vgg_512.SSDNet,
+                'ssd_300_vgg_tiny': ssd_vgg_300.SSDNetTiny
                 }
 
 

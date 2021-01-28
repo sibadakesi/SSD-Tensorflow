@@ -13,6 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 """Generic training script that trains a SSD model using a given dataset."""
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 import tensorflow as tf
 from tensorflow.python.ops import control_flow_ops
 
@@ -366,7 +368,7 @@ def main(_):
         gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=FLAGS.gpu_memory_fraction)
         config = tf.ConfigProto(log_device_placement=False,
                                 gpu_options=gpu_options)
-        saver = tf.train.Saver(max_to_keep=5,
+        saver = tf.train.Saver(max_to_keep=2,
                                keep_checkpoint_every_n_hours=1.0,
                                write_version=2,
                                pad_step_number=False)
